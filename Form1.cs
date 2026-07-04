@@ -32,7 +32,7 @@ public partial class Form1 : Form
     private List<SettingsCategory> _win10Categories;
     private List<SettingsCategory> _win11Categories;
     private SettingsExportData? _loadedExportData;
-    private Panel _adminBanner;
+    private readonly List<Control> _adminWarnings = new();
     private bool _darkMode;
     private bool _hasAdminRights;
 
@@ -81,8 +81,7 @@ public partial class Form1 : Form
     private void CheckAdminRights()
     {
         _hasAdminRights = IsAdministrator();
-        if (_adminBanner != null)
-            _adminBanner.Visible = !_hasAdminRights;
+        foreach (var c in _adminWarnings) c.Visible = !_hasAdminRights;
         Log(_hasAdminRights
             ? "Права администратора: есть."
             : "Права администратора: нет. Некоторые функции могут быть недоступны.");
@@ -156,48 +155,6 @@ public partial class Form1 : Form
         headerPanel.Controls.Add(themeBtn);
 
         var contentArea = new Panel { Dock = DockStyle.Fill };
-
-        // Admin banner
-        _adminBanner = new Panel
-        {
-            Height = 34, Dock = DockStyle.Top, BackColor = Color.FromArgb(255, 245, 225),
-            Visible = false
-        };
-        _adminBanner.Controls.Add(new Label
-        {
-            Text = "⚠", Font = new Font("Segoe UI", 11), ForeColor = Color.FromArgb(180, 100, 0),
-            Location = new Point(12, 6), AutoSize = true
-        });
-        _adminBanner.Controls.Add(new Label
-        {
-            Text = "Программа запущена без прав администратора", ForeColor = Color.FromArgb(120, 70, 0),
-            Font = new Font("Segoe UI", 9), Location = new Point(34, 7), AutoSize = true
-        });
-
-        var requestBtn = new Button
-        {
-            Text = "🔑 Запросить права", FlatStyle = FlatStyle.Flat,
-            FlatAppearance = { BorderSize = 0, MouseOverBackColor = Color.FromArgb(255, 235, 200) },
-            BackColor = Color.FromArgb(255, 230, 190), ForeColor = Color.FromArgb(100, 60, 0),
-            Font = new Font("Segoe UI", 9, FontStyle.Bold), Cursor = Cursors.Hand,
-            Size = new Size(150, 24), Location = new Point(280, 6), TextAlign = ContentAlignment.MiddleCenter
-        };
-        requestBtn.Click += RequestAdmin_Click;
-
-        var whyLink = new Label
-        {
-            Text = "Зачем?", ForeColor = Color.FromArgb(60, 100, 180),
-            Font = new Font("Segoe UI", 9, FontStyle.Underline), Cursor = Cursors.Hand,
-            Location = new Point(438, 8), AutoSize = true
-        };
-        whyLink.Click += ShowAdminInfo;
-        whyLink.MouseEnter += (_, _) => whyLink.ForeColor = Color.FromArgb(0, 80, 180);
-        whyLink.MouseLeave += (_, _) => whyLink.ForeColor = _darkMode ? Color.FromArgb(100, 150, 220) : Color.FromArgb(60, 100, 180);
-
-        _adminBanner.Controls.Add(requestBtn);
-        _adminBanner.Controls.Add(whyLink);
-
-        contentArea.Controls.Add(_adminBanner);
 
         var mainSplit = new SplitContainer
         {
@@ -279,7 +236,7 @@ public partial class Form1 : Form
         };
 
         var bottomPanel = new Panel { Dock = DockStyle.Fill, Height = 40, BackColor = Color.White };
-        var botTable = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 4, RowCount = 1, BackColor = Color.White };
+        var botTable = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 6, RowCount = 1, BackColor = Color.White };
 
         var pathBox = new TextBox
         {
@@ -290,6 +247,11 @@ public partial class Form1 : Form
         var browseBtn = CreateBtn("Обзор", Color.FromArgb(100, 108, 118), 80);
         var regBtn = CreateBtn("Экспорт .reg", Color.FromArgb(75, 95, 135), 115, 9f);
         var exportBtn = CreateBtn("▶ Экспорт", PrimaryColor, 120, 9.5f);
+
+        // Admin warning inline (right after export button)
+        var adminPanel = CreateAdminWarningPanel();
+        botTable.SetColumnSpan(adminPanel, 2);
+        _adminWarnings.Add(adminPanel);
 
         var capturedTree = tree;
         var capturedBox = pathBox;
@@ -311,6 +273,12 @@ public partial class Form1 : Form
         botTable.Controls.Add(browseBtn, 1, 0);
         botTable.Controls.Add(regBtn, 2, 0);
         botTable.Controls.Add(exportBtn, 3, 0);
+        botTable.Controls.Add(adminPanel, 4, 0);
+        botTable.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        botTable.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 80));
+        botTable.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 115));
+        botTable.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 120));
+        botTable.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
         bottomPanel.Controls.Add(botTable);
 
         layout.Controls.Add(topPanel, 0, 0);
@@ -370,6 +338,9 @@ public partial class Form1 : Form
         actionP.Controls.Add(_restoreButton);
         actionP.Controls.Add(new Panel { Width = 20, Height = 1 });
         actionP.Controls.Add(_importButton);
+        var importAdminWarning = CreateAdminWarningPanel();
+        _adminWarnings.Add(importAdminWarning);
+        actionP.Controls.Add(importAdminWarning);
         layout.Controls.Add(actionP, 0, 3);
         layout.Controls.Add(fileP, 0, 1);
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 26));
@@ -479,15 +450,6 @@ public partial class Form1 : Form
             _logTextBox.ForeColor = Color.FromArgb(0, 200, 100);
             _jsonPreviewTextBox.BackColor = DarkPanel;
             _jsonPreviewTextBox.ForeColor = Color.FromArgb(170, 200, 230);
-            if (_adminBanner.Visible)
-            {
-                _adminBanner.BackColor = Color.FromArgb(50, 40, 20);
-                foreach (Control c in _adminBanner.Controls)
-                {
-                    if (c is Label l && l.Text.StartsWith("⚠")) l.ForeColor = Color.FromArgb(220, 170, 50);
-                    if (c is Label l2 && l2.Text.Contains("без прав")) l2.ForeColor = Color.FromArgb(200, 180, 120);
-                }
-            }
         }
         else
         {
@@ -497,15 +459,6 @@ public partial class Form1 : Form
             _logTextBox.ForeColor = Color.FromArgb(0, 218, 118);
             _jsonPreviewTextBox.BackColor = Color.FromArgb(38, 38, 44);
             _jsonPreviewTextBox.ForeColor = Color.FromArgb(195, 215, 240);
-            if (_adminBanner.Visible)
-            {
-                _adminBanner.BackColor = Color.FromArgb(255, 245, 225);
-                foreach (Control c in _adminBanner.Controls)
-                {
-                    if (c is Label l && l.Text.StartsWith("⚠")) l.ForeColor = Color.FromArgb(180, 100, 0);
-                    if (c is Label l2 && l2.Text.Contains("без прав")) l2.ForeColor = Color.FromArgb(120, 70, 0);
-                }
-            }
         }
     }
 
@@ -539,6 +492,34 @@ public partial class Form1 : Form
     }
 
     // ─── Shared helpers ───────────────────────────────────────────
+
+    private Panel CreateAdminWarningPanel()
+    {
+        var panel = new Panel { Height = 28, Width = 200, Visible = false };
+        var reqBtn = new Button
+        {
+            Text = "🔑 Запросить права", FlatStyle = FlatStyle.Flat,
+            FlatAppearance = { BorderSize = 0, MouseOverBackColor = Color.FromArgb(255, 240, 210) },
+            BackColor = Color.FromArgb(255, 235, 200), ForeColor = Color.FromArgb(110, 65, 0),
+            Font = new Font("Segoe UI", 8.5f, FontStyle.Bold), Cursor = Cursors.Hand,
+            Size = new Size(130, 24), Location = new Point(0, 2), TextAlign = ContentAlignment.MiddleCenter
+        };
+        reqBtn.Click += RequestAdmin_Click;
+
+        var why = new Label
+        {
+            Text = "Зачем?", ForeColor = Color.FromArgb(60, 100, 180),
+            Font = new Font("Segoe UI", 8.5f, FontStyle.Underline), Cursor = Cursors.Hand,
+            Location = new Point(136, 5), AutoSize = true
+        };
+        why.Click += ShowAdminInfo;
+        why.MouseEnter += (_, _) => why.ForeColor = Color.FromArgb(0, 80, 180);
+        why.MouseLeave += (_, _) => why.ForeColor = Color.FromArgb(60, 100, 180);
+
+        panel.Controls.Add(reqBtn);
+        panel.Controls.Add(why);
+        return panel;
+    }
 
     private static Button CreateBtn(string text, Color bgColor, int width, float fontSize = 9.5f)
     {
