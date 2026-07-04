@@ -32,20 +32,22 @@ public partial class Form1 : Form
     private List<SettingsCategory> _win10Categories;
     private List<SettingsCategory> _win11Categories;
     private SettingsExportData? _loadedExportData;
+    private Panel _adminBanner;
     private bool _darkMode;
+    private bool _hasAdminRights;
 
-    // Light theme colors
-    private static readonly Color PrimaryColor = Color.FromArgb(0, 120, 212);
-    private static readonly Color SuccessColor = Color.FromArgb(16, 124, 16);
-    private static readonly Color WarningColor = Color.FromArgb(200, 120, 0);
-    private static readonly Color DangerColor = Color.FromArgb(200, 60, 60);
+    private static readonly Color PrimaryColor = Color.FromArgb(0, 103, 192);
+    private static readonly Color PrimaryLight = Color.FromArgb(0, 130, 220);
+    private static readonly Color SuccessColor = Color.FromArgb(15, 120, 15);
+    private static readonly Color WarningColor = Color.FromArgb(195, 115, 0);
+    private static readonly Color DangerColor = Color.FromArgb(195, 55, 55);
 
-    // Dark theme colors
-    private static readonly Color DarkBg = Color.FromArgb(28, 28, 32);
-    private static readonly Color DarkPanel = Color.FromArgb(36, 36, 42);
-    private static readonly Color DarkSurface = Color.FromArgb(44, 44, 52);
-    private static readonly Color DarkBorder = Color.FromArgb(60, 60, 70);
-    private static readonly Color DarkText = Color.FromArgb(210, 210, 220);
+    private static readonly Color DarkBg = Color.FromArgb(26, 26, 30);
+    private static readonly Color DarkPanel = Color.FromArgb(34, 34, 40);
+    private static readonly Color DarkSurface = Color.FromArgb(42, 42, 50);
+    private static readonly Color DarkBorder = Color.FromArgb(58, 58, 68);
+    private static readonly Color DarkText = Color.FromArgb(215, 215, 225);
+    private static readonly Color DarkSubtext = Color.FromArgb(150, 155, 170);
 
     public Form1()
     {
@@ -65,46 +67,142 @@ public partial class Form1 : Form
         CheckAdminRights();
     }
 
+    private bool IsAdministrator()
+    {
+        try
+        {
+            var identity = System.Security.Principal.WindowsIdentity.GetCurrent();
+            return new System.Security.Principal.WindowsPrincipal(identity)
+                .IsInRole(System.Security.Principal.WindowsBuiltInRole.Administrator);
+        }
+        catch { return false; }
+    }
+
+    private void CheckAdminRights()
+    {
+        _hasAdminRights = IsAdministrator();
+        if (_adminBanner != null)
+            _adminBanner.Visible = !_hasAdminRights;
+        Log(_hasAdminRights
+            ? "Права администратора: есть."
+            : "Права администратора: нет. Некоторые функции могут быть недоступны.");
+    }
+
+    private void RequestAdmin_Click(object? sender, EventArgs e)
+    {
+        try
+        {
+            var psi = new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = Application.ExecutablePath,
+                UseShellExecute = true,
+                Verb = "runas"
+            };
+            System.Diagnostics.Process.Start(psi);
+            Application.Exit();
+        }
+        catch (Exception ex)
+        {
+            Log($"Не удалось повысить права: {ex.Message}");
+            MessageBox.Show("Не удалось запустить программу от имени администратора.", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
+    }
+
+    private void ShowAdminInfo(object? sender, EventArgs e)
+    {
+        MessageBox.Show(
+            "Некоторые функции SettingsIE требуют прав администратора:\n\n" +
+            "• Чтение и запись разделов реестра (HKEY_LOCAL_MACHINE)\n" +
+            "• Создание резервной копии реестра\n" +
+            "• Импорт .reg файлов\n" +
+            "• Создание точки восстановления системы\n\n" +
+            "Без прав администратора доступен только экспорт\nиз HKEY_CURRENT_USER.",
+            "Зачем нужны права администратора?",
+            MessageBoxButtons.OK, MessageBoxIcon.Information);
+    }
+
     private void InitializeComponent()
     {
         Text = "SettingsIE — Управление настройками Windows";
-        Size = new Size(1020, 780);
-        MinimumSize = new Size(800, 600);
+        Size = new Size(1040, 780);
+        MinimumSize = new Size(820, 600);
         StartPosition = FormStartPosition.CenterScreen;
         Icon = SystemIcons.Application;
-        ApplyTheme();
+        Font = new Font("Segoe UI", 9.5f);
+        BackColor = Color.FromArgb(245, 247, 250);
 
-        var headerPanel = new Panel { Height = 60, Dock = DockStyle.Top };
+        var headerPanel = new Panel { Height = 56, Dock = DockStyle.Top, BackColor = Color.FromArgb(32, 36, 46) };
         headerPanel.Controls.Add(new Label
         {
-            Text = "⚙ SettingsIE",
-            Font = new Font("Segoe UI", 17, FontStyle.Bold),
-            Location = new Point(16, 10), AutoSize = true, Name = "lblTitle"
+            Text = "⚙ SettingsIE", Font = new Font("Segoe UI", 16, FontStyle.Bold),
+            ForeColor = Color.White, Location = new Point(18, 8), AutoSize = true
         });
         headerPanel.Controls.Add(new Label
         {
-            Text = "Экспорт и импорт настроек Windows 10 / 11",
-            Font = new Font("Segoe UI", 9),
-            Location = new Point(152, 20), AutoSize = true, Name = "lblSubtitle"
+            Text = "Windows 10 / 11", Font = new Font("Segoe UI", 9),
+            ForeColor = Color.FromArgb(150, 160, 185), Location = new Point(162, 17), AutoSize = true
         });
 
         var themeBtn = new Button
         {
-            Text = "🌙", FlatStyle = FlatStyle.Flat,
-            FlatAppearance = { BorderSize = 0 },
-            Size = new Size(34, 30), Location = new Point(headerPanel.Width - 48, 14),
-            Cursor = Cursors.Hand, Font = new Font("Segoe UI", 14),
-            Anchor = AnchorStyles.Top | AnchorStyles.Right,
-            Name = "btnTheme"
+            Text = "🌙", FlatStyle = FlatStyle.Flat, FlatAppearance = { BorderSize = 0 },
+            Size = new Size(36, 30), Location = new Point(headerPanel.Width - 48, 12),
+            Cursor = Cursors.Hand, Font = new Font("Segoe UI", 13),
+            Anchor = AnchorStyles.Top | AnchorStyles.Right, BackColor = Color.Transparent,
+            ForeColor = Color.White
         };
         themeBtn.Click += ToggleTheme;
+        headerPanel.Resize += (_, _) => themeBtn.Location = new Point(headerPanel.Width - 48, 12);
         headerPanel.Controls.Add(themeBtn);
-        headerPanel.Resize += (s, e) => themeBtn.Location = new Point(headerPanel.Width - 48, 14);
+
+        var contentArea = new Panel { Dock = DockStyle.Fill };
+
+        // Admin banner
+        _adminBanner = new Panel
+        {
+            Height = 34, Dock = DockStyle.Top, BackColor = Color.FromArgb(255, 245, 225),
+            Visible = false
+        };
+        _adminBanner.Controls.Add(new Label
+        {
+            Text = "⚠", Font = new Font("Segoe UI", 11), ForeColor = Color.FromArgb(180, 100, 0),
+            Location = new Point(12, 6), AutoSize = true
+        });
+        _adminBanner.Controls.Add(new Label
+        {
+            Text = "Программа запущена без прав администратора", ForeColor = Color.FromArgb(120, 70, 0),
+            Font = new Font("Segoe UI", 9), Location = new Point(34, 7), AutoSize = true
+        });
+
+        var requestBtn = new Button
+        {
+            Text = "🔑 Запросить права", FlatStyle = FlatStyle.Flat,
+            FlatAppearance = { BorderSize = 0, MouseOverBackColor = Color.FromArgb(255, 235, 200) },
+            BackColor = Color.FromArgb(255, 230, 190), ForeColor = Color.FromArgb(100, 60, 0),
+            Font = new Font("Segoe UI", 9, FontStyle.Bold), Cursor = Cursors.Hand,
+            Size = new Size(150, 24), Location = new Point(280, 6), TextAlign = ContentAlignment.MiddleCenter
+        };
+        requestBtn.Click += RequestAdmin_Click;
+
+        var whyLink = new Label
+        {
+            Text = "Зачем?", ForeColor = Color.FromArgb(60, 100, 180),
+            Font = new Font("Segoe UI", 9, FontStyle.Underline), Cursor = Cursors.Hand,
+            Location = new Point(438, 8), AutoSize = true
+        };
+        whyLink.Click += ShowAdminInfo;
+        whyLink.MouseEnter += (_, _) => whyLink.ForeColor = Color.FromArgb(0, 80, 180);
+        whyLink.MouseLeave += (_, _) => whyLink.ForeColor = _darkMode ? Color.FromArgb(100, 150, 220) : Color.FromArgb(60, 100, 180);
+
+        _adminBanner.Controls.Add(requestBtn);
+        _adminBanner.Controls.Add(whyLink);
+
+        contentArea.Controls.Add(_adminBanner);
 
         var mainSplit = new SplitContainer
         {
             Dock = DockStyle.Fill, Orientation = Orientation.Horizontal,
-            SplitterDistance = 510, SplitterWidth = 1
+            SplitterDistance = 510, SplitterWidth = 1, BackColor = Color.FromArgb(220, 224, 230)
         };
 
         _tabControl = new TabControl { Dock = DockStyle.Fill, Font = new Font("Segoe UI", 10), Padding = new Point(12, 5) };
@@ -114,8 +212,8 @@ public partial class Form1 : Form
         _importTab = new TabPage("📥 Импорт");
         _libraryTab = new TabPage("📚 Библиотека");
 
-        BuildWinTab(_exportWin10Tab, out _win10TreeView, out var win10ExportBtn, out var win10PathBox, out var win10BrowseBtn, out var win10SelectAll, out var win10DeselectAll, "Win10");
-        BuildWinTab(_exportWin11Tab, out _win11TreeView, out var win11ExportBtn, out var win11PathBox, out var win11BrowseBtn, out var win11SelectAll, out var win11DeselectAll, "Win11");
+        BuildWinTab(_exportWin10Tab, out _win10TreeView, "Win10");
+        BuildWinTab(_exportWin11Tab, out _win11TreeView, "Win11");
         BuildImportTab();
         BuildLibraryTab();
 
@@ -126,20 +224,15 @@ public partial class Form1 : Form
 
         mainSplit.Panel1.Controls.Add(_tabControl);
 
-        var logPanel = new Panel { Dock = DockStyle.Fill, Padding = new Padding(0) };
-        var logHeader = new Panel { Height = 26, Dock = DockStyle.Top };
-        logHeader.Controls.Add(new Label
-        {
-            Text = "  📋 Журнал операций", Location = new Point(0, 3),
-            AutoSize = true, Font = new Font("Segoe UI", 9, FontStyle.Bold), Name = "lblLogHeader"
-        });
+        var logPanel = new Panel { Dock = DockStyle.Fill };
+        var logHeader = new Panel { Height = 26, Dock = DockStyle.Top, BackColor = Color.FromArgb(240, 242, 245) };
+        logHeader.Controls.Add(new Label { Text = "  📋 Журнал операций", Location = new Point(0, 3), AutoSize = true, Font = new Font("Segoe UI", 9, FontStyle.Bold), ForeColor = Color.FromArgb(60, 64, 72) });
 
         _logTextBox = new TextBox
         {
             Dock = DockStyle.Fill, Multiline = true, ReadOnly = true,
-            ScrollBars = ScrollBars.Vertical,
-            Font = new Font("Cascadia Code", 9.25f),
-            BorderStyle = BorderStyle.None
+            ScrollBars = ScrollBars.Vertical, Font = new Font("Cascadia Code", 9.25f),
+            BackColor = Color.FromArgb(28, 28, 34), ForeColor = Color.FromArgb(0, 218, 118), BorderStyle = BorderStyle.None
         };
 
         logPanel.Controls.Add(_logTextBox);
@@ -148,76 +241,77 @@ public partial class Form1 : Form
         _progressBar = new ProgressBar
         {
             Dock = DockStyle.Bottom, Height = 4, Visible = false,
-            Style = ProgressBarStyle.Continuous
+            Style = ProgressBarStyle.Continuous, ForeColor = PrimaryColor
         };
 
         mainSplit.Panel2.Controls.Add(logPanel);
+        contentArea.Controls.Add(mainSplit);
 
-        Controls.Add(mainSplit);
+        Controls.Add(contentArea);
         Controls.Add(headerPanel);
         Controls.Add(_progressBar);
     }
 
-    private void BuildWinTab(TabPage tab, out TreeView tree, out Button exportBtn, out TextBox pathBox, out Button browseBtn, out Button selectAll, out Button deselectAll, string platform)
+    private void BuildWinTab(TabPage tab, out TreeView tree, string platform)
     {
         tab.Padding = new Padding(4);
+        tab.BackColor = Color.White;
 
-        var layout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 3, Padding = new Padding(8), Name = $"layout_{platform}" };
+        var layout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 3, Padding = new Padding(8) };
 
-        var topPanel = new FlowLayoutPanel { Dock = DockStyle.Fill, Height = 34, FlowDirection = FlowDirection.LeftToRight, Name = $"topPanel_{platform}" };
+        var topPanel = new FlowLayoutPanel { Dock = DockStyle.Fill, Height = 34, FlowDirection = FlowDirection.LeftToRight, BackColor = Color.White };
         topPanel.Controls.Add(new Label
         {
-            Text = "Выберите категории:", AutoSize = true, Font = new Font("Segoe UI", 9.5f), Location = new Point(0, 6), Name = $"lbl_{platform}"
+            Text = "Категории:", AutoSize = true, Font = new Font("Segoe UI", 9.5f), ForeColor = Color.FromArgb(70, 74, 82), Location = new Point(0, 6)
         });
-        topPanel.Controls.Add(new Panel { Width = 16, Height = 1 });
+        topPanel.Controls.Add(new Panel { Width = 14, Height = 1 });
 
-        selectAll = CreateStyledButton("✓ Выбрать всё", Color.FromArgb(70, 130, 200), 120);
-        deselectAll = CreateStyledButton("✕ Снять всё", Color.FromArgb(140, 140, 150), 120);
-        topPanel.Controls.Add(selectAll);
-        topPanel.Controls.Add(deselectAll);
+        var selAll = CreateBtn("✓ Все", Color.FromArgb(70, 128, 200), 90);
+        var deselAll = CreateBtn("✕ Снять", Color.FromArgb(135, 135, 145), 90);
+        topPanel.Controls.Add(selAll);
+        topPanel.Controls.Add(deselAll);
 
         tree = new TreeView
         {
             Dock = DockStyle.Fill, CheckBoxes = true, HideSelection = false,
             BorderStyle = BorderStyle.FixedSingle, Font = new Font("Segoe UI", 9.5f),
-            ItemHeight = 22, ShowLines = false, Name = $"tree_{platform}"
+            ItemHeight = 22, ShowLines = false, BackColor = Color.FromArgb(250, 251, 253)
         };
 
-        var bottomPanel = new Panel { Dock = DockStyle.Fill, Height = 40, Name = $"bottom_{platform}" };
-        var bottomTable = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 4, RowCount = 1, Name = $"table_{platform}" };
-        pathBox = new TextBox
+        var bottomPanel = new Panel { Dock = DockStyle.Fill, Height = 40, BackColor = Color.White };
+        var botTable = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 4, RowCount = 1, BackColor = Color.White };
+
+        var pathBox = new TextBox
         {
-            Dock = DockStyle.Fill,
+            Dock = DockStyle.Fill, Font = new Font("Segoe UI", 9), BorderStyle = BorderStyle.FixedSingle,
             Text = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), $"WindowsSettings_{platform}.json"),
-            Font = new Font("Segoe UI", 9), BorderStyle = BorderStyle.FixedSingle
+            BackColor = Color.FromArgb(250, 251, 253)
         };
-        browseBtn = CreateStyledButton("Обзор...", Color.FromArgb(100, 110, 120), 85);
-        var regBtn = CreateStyledButton("Экспорт .reg", Color.FromArgb(80, 100, 140), 120);
-        exportBtn = CreateStyledButton("▶ Экспорт", PrimaryColor, 130);
-        exportBtn.Name = $"exportBtn_{platform}";
+        var browseBtn = CreateBtn("Обзор", Color.FromArgb(100, 108, 118), 80);
+        var regBtn = CreateBtn("Экспорт .reg", Color.FromArgb(75, 95, 135), 115, 9f);
+        var exportBtn = CreateBtn("▶ Экспорт", PrimaryColor, 120, 9.5f);
 
-        string capturedPlatform = platform;
         var capturedTree = tree;
-        var capturedPathBox = pathBox;
-        selectAll.Click += (s, e) => SetAllChecked(capturedTree.Nodes, true);
-        deselectAll.Click += (s, e) => SetAllChecked(capturedTree.Nodes, false);
-        browseBtn.Click += (s, e) =>
+        var capturedBox = pathBox;
+        selAll.Click += (_, _) => SetAllChecked(capturedTree.Nodes, true);
+        deselAll.Click += (_, _) => SetAllChecked(capturedTree.Nodes, false);
+        browseBtn.Click += (_, _) =>
         {
-            var dlg = new SaveFileDialog { Filter = "JSON (*.json)|*.json|REG (*.reg)|*.reg", FileName = capturedPathBox.Text };
-            if (dlg.ShowDialog() == DialogResult.OK) capturedPathBox.Text = dlg.FileName;
+            var d = new SaveFileDialog { Filter = "JSON (*.json)|*.json|REG (*.reg)|*.reg", FileName = capturedBox.Text };
+            if (d.ShowDialog() == DialogResult.OK) capturedBox.Text = d.FileName;
         };
-        regBtn.Click += (s, e) =>
+        regBtn.Click += (_, _) =>
         {
-            capturedPathBox.Text = Path.ChangeExtension(capturedPathBox.Text, ".reg");
-            ExportWin_Click(capturedPlatform, capturedTree, capturedPathBox);
+            capturedBox.Text = Path.ChangeExtension(capturedBox.Text, ".reg");
+            ExportWin(platform, capturedTree, capturedBox);
         };
-        exportBtn.Click += (s, e) => ExportWin_Click(capturedPlatform, capturedTree, capturedPathBox);
+        exportBtn.Click += (_, _) => ExportWin(platform, capturedTree, capturedBox);
 
-        bottomTable.Controls.Add(pathBox, 0, 0);
-        bottomTable.Controls.Add(browseBtn, 1, 0);
-        bottomTable.Controls.Add(regBtn, 2, 0);
-        bottomTable.Controls.Add(exportBtn, 3, 0);
-        bottomPanel.Controls.Add(bottomTable);
+        botTable.Controls.Add(pathBox, 0, 0);
+        botTable.Controls.Add(browseBtn, 1, 0);
+        botTable.Controls.Add(regBtn, 2, 0);
+        botTable.Controls.Add(exportBtn, 3, 0);
+        bottomPanel.Controls.Add(botTable);
 
         layout.Controls.Add(topPanel, 0, 0);
         layout.Controls.Add(tree, 0, 1);
@@ -232,68 +326,52 @@ public partial class Form1 : Form
     private void BuildImportTab()
     {
         _importTab.Padding = new Padding(4);
-        var layout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 5, Padding = new Padding(8), Name = "importLayout" };
+        _importTab.BackColor = Color.White;
 
+        var layout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 5, Padding = new Padding(8) };
         layout.Controls.Add(new Label
         {
-            Text = "Выберите файл для импорта:", AutoSize = true,
-            Font = new Font("Segoe UI", 9.5f), Margin = new Padding(0, 4, 0, 4), Name = "lblImport"
+            Text = "Файл для импорта:", AutoSize = true, Font = new Font("Segoe UI", 9.5f),
+            ForeColor = Color.FromArgb(70, 74, 82), Margin = new Padding(0, 4, 0, 4)
         }, 0, 0);
 
-        var filePanel = new TableLayoutPanel { Dock = DockStyle.Fill, Height = 34, ColumnCount = 3, RowCount = 1, Name = "filePanel" };
-        _importPathTextBox = new TextBox { Dock = DockStyle.Fill, Font = new Font("Segoe UI", 9), BorderStyle = BorderStyle.FixedSingle };
-        _importBrowseButton = CreateStyledButton("Обзор...", Color.FromArgb(100, 110, 120), 85);
-        _importBrowseButton.Click += ImportBrowse_Click;
-        filePanel.Controls.Add(_importPathTextBox, 0, 0);
-        filePanel.Controls.Add(_importBrowseButton, 1, 0);
-
-        var previewSplit = new SplitContainer
+        var fileP = new TableLayoutPanel { Dock = DockStyle.Fill, Height = 34, ColumnCount = 3, RowCount = 1, BackColor = Color.White };
+        _importPathTextBox = new TextBox { Dock = DockStyle.Fill, Font = new Font("Segoe UI", 9), BorderStyle = BorderStyle.FixedSingle, BackColor = Color.FromArgb(250, 251, 253) };
+        _importBrowseButton = CreateBtn("Обзор", Color.FromArgb(100, 108, 118), 80);
+        _importBrowseButton.Click += (_, _) =>
         {
-            Dock = DockStyle.Fill, Orientation = Orientation.Vertical,
-            SplitterDistance = 220, SplitterWidth = 1, Name = "previewSplit"
+            var d = new OpenFileDialog { Filter = "JSON (*.json)|*.json|REG (*.reg)|*.reg" };
+            if (d.ShowDialog() == DialogResult.OK) { _importPathTextBox.Text = d.FileName; LoadImportFile(d.FileName); }
         };
+        fileP.Controls.Add(_importPathTextBox, 0, 0);
+        fileP.Controls.Add(_importBrowseButton, 1, 0);
 
-        _importTreeView = new TreeView
-        {
-            Dock = DockStyle.Fill, CheckBoxes = true, HideSelection = false,
-            BorderStyle = BorderStyle.None, Font = new Font("Segoe UI", 9.5f),
-            ItemHeight = 22, ShowLines = false, Name = "importTree"
-        };
+        var split = new SplitContainer { Dock = DockStyle.Fill, Orientation = Orientation.Vertical, SplitterDistance = 220, SplitterWidth = 1, BackColor = Color.FromArgb(220, 224, 230) };
+        _importTreeView = new TreeView { Dock = DockStyle.Fill, CheckBoxes = true, HideSelection = false, BorderStyle = BorderStyle.None, Font = new Font("Segoe UI", 9.5f), ItemHeight = 22, ShowLines = false, BackColor = Color.FromArgb(250, 251, 253) };
 
-        var jsonHeader = new Panel { Height = 24, Dock = DockStyle.Top, Name = "jsonHeader" };
-        jsonHeader.Controls.Add(new Label
-        {
-            Text = "📄 Предпросмотр JSON", Font = new Font("Segoe UI", 8.5f, FontStyle.Bold),
-            Location = new Point(6, 3), AutoSize = true, Name = "lblJsonHeader"
-        });
+        var jsonH = new Panel { Height = 24, Dock = DockStyle.Top, BackColor = Color.FromArgb(50, 50, 58) };
+        jsonH.Controls.Add(new Label { Text = "📄 Предпросмотр JSON", ForeColor = Color.FromArgb(170, 180, 210), Font = new Font("Segoe UI", 8.5f, FontStyle.Bold), Location = new Point(6, 3), AutoSize = true });
+        _jsonPreviewTextBox = new TextBox { Dock = DockStyle.Fill, Multiline = true, ReadOnly = true, ScrollBars = ScrollBars.Both, Font = new Font("Cascadia Code", 9f), BackColor = Color.FromArgb(38, 38, 44), ForeColor = Color.FromArgb(195, 215, 240), BorderStyle = BorderStyle.None, WordWrap = false };
 
-        _jsonPreviewTextBox = new TextBox
-        {
-            Dock = DockStyle.Fill, Multiline = true, ReadOnly = true,
-            ScrollBars = ScrollBars.Both, Font = new Font("Cascadia Code", 9f),
-            BorderStyle = BorderStyle.None, WordWrap = false, Name = "jsonPreview"
-        };
+        split.Panel1.Controls.Add(_importTreeView);
+        split.Panel2.Controls.Add(_jsonPreviewTextBox);
+        split.Panel2.Controls.Add(jsonH);
+        layout.Controls.Add(split, 0, 2);
 
-        previewSplit.Panel1.Controls.Add(_importTreeView);
-        previewSplit.Panel2.Controls.Add(_jsonPreviewTextBox);
-        previewSplit.Panel2.Controls.Add(jsonHeader);
-        layout.Controls.Add(previewSplit, 0, 2);
+        var actionP = new FlowLayoutPanel { Dock = DockStyle.Fill, Height = 36, FlowDirection = FlowDirection.LeftToRight, BackColor = Color.White };
+        _backupButton = CreateBtn("💾 Резервная копия", WarningColor, 165, 9f);
+        _backupButton.Click += Backup_Click;
+        _restoreButton = CreateBtn("♻ Восстановить", Color.FromArgb(175, 135, 0), 145, 9f);
+        _restoreButton.Click += Restore_Click;
+        _importButton = CreateBtn("▶ Импортировать", SuccessColor, 145, 9.5f);
+        _importButton.Click += Import_Click;
 
-        var actionPanel = new FlowLayoutPanel { Dock = DockStyle.Fill, Height = 36, FlowDirection = FlowDirection.LeftToRight, Name = "actionPanel" };
-        _backupButton = CreateStyledButton("💾 Резервная копия", WarningColor, 170);
-        _backupButton.Click += BackupButton_Click;
-        _restoreButton = CreateStyledButton("♻ Восстановить", Color.FromArgb(180, 140, 0), 150);
-        _restoreButton.Click += RestoreButton_Click;
-        _importButton = CreateStyledButton("▶ Импортировать", SuccessColor, 150);
-        _importButton.Click += ImportButton_Click;
-
-        actionPanel.Controls.Add(_backupButton);
-        actionPanel.Controls.Add(_restoreButton);
-        actionPanel.Controls.Add(new Panel { Width = 20, Height = 1 });
-        actionPanel.Controls.Add(_importButton);
-        layout.Controls.Add(actionPanel, 0, 3);
-
-        layout.Controls.Add(filePanel, 0, 1);
+        actionP.Controls.Add(_backupButton);
+        actionP.Controls.Add(_restoreButton);
+        actionP.Controls.Add(new Panel { Width = 20, Height = 1 });
+        actionP.Controls.Add(_importButton);
+        layout.Controls.Add(actionP, 0, 3);
+        layout.Controls.Add(fileP, 0, 1);
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 26));
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));
         layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
@@ -305,81 +383,75 @@ public partial class Form1 : Form
     private void BuildLibraryTab()
     {
         _libraryTab.Padding = new Padding(4);
-        var layout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 3, Padding = new Padding(8), Name = "libLayout" };
+        _libraryTab.BackColor = Color.White;
 
-        var headerFlow = new FlowLayoutPanel { Dock = DockStyle.Fill, Height = 34, FlowDirection = FlowDirection.LeftToRight, Name = "libHeader" };
-        headerFlow.Controls.Add(new Label
-        {
-            Text = "📚 Локальная библиотека конфигов", Font = new Font("Segoe UI", 11, FontStyle.Bold), AutoSize = true, Name = "lblLibTitle"
-        });
+        var layout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 3, Padding = new Padding(8) };
 
-        var filterCombo = new ComboBox
-        {
-            DropDownStyle = ComboBoxStyle.DropDownList, Width = 140, Font = new Font("Segoe UI", 9),
-            Name = "filterCombo", Location = new Point(10, 4)
-        };
-        filterCombo.Items.AddRange(["Все платформы", "Windows 10", "Windows 11"]);
-        filterCombo.SelectedIndex = 0;
-        filterCombo.SelectedIndexChanged += (s, e) => RefreshLibraryList(filterCombo.SelectedIndex);
+        var headerF = new FlowLayoutPanel { Dock = DockStyle.Fill, Height = 34, FlowDirection = FlowDirection.LeftToRight, BackColor = Color.White };
+        headerF.Controls.Add(new Label { Text = "📚 Локальная библиотека конфигов", Font = new Font("Segoe UI", 11, FontStyle.Bold), ForeColor = Color.FromArgb(45, 48, 58), AutoSize = true });
+        headerF.Controls.Add(new Panel { Width = 16, Height = 1 });
+        headerF.Controls.Add(new Label { Text = "Фильтр:", AutoSize = true, ForeColor = Color.FromArgb(80, 84, 92), Font = new Font("Segoe UI", 9) });
 
-        var saveLibBtn = CreateStyledButton("➕ Сохранить", SuccessColor, 130);
+        var filterCb = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 130, Font = new Font("Segoe UI", 9), BackColor = Color.White };
+        filterCb.Items.AddRange(["Все", "Windows 10", "Windows 11"]);
+        filterCb.SelectedIndex = 0;
+        filterCb.SelectedIndexChanged += (_, _) => RefreshLibraryList(filterCb.SelectedIndex);
 
-        headerFlow.Controls.Add(new Panel { Width = 20, Height = 1 });
-        headerFlow.Controls.Add(new Label { Text = "Фильтр:", AutoSize = true, Font = new Font("Segoe UI", 9), Location = new Point(0, 6), Name = "lblFilter" });
-        headerFlow.Controls.Add(filterCombo);
-        headerFlow.Controls.Add(new Panel { Width = 20, Height = 1 });
-        headerFlow.Controls.Add(saveLibBtn);
+        var saveLibBtn = CreateBtn("➕ Сохранить", SuccessColor, 125);
+        saveLibBtn.Click += SaveToLib_Click;
+
+        headerF.Controls.Add(filterCb);
+        headerF.Controls.Add(new Panel { Width = 16, Height = 1 });
+        headerF.Controls.Add(saveLibBtn);
 
         _libraryListView = new ListView
         {
             Dock = DockStyle.Fill, View = View.Details, FullRowSelect = true,
             HideSelection = false, BorderStyle = BorderStyle.FixedSingle,
-            Font = new Font("Segoe UI", 9.5f), MultiSelect = false, Name = "libList"
+            Font = new Font("Segoe UI", 9.5f), MultiSelect = false, BackColor = Color.FromArgb(250, 251, 253)
         };
-        _libraryListView.Columns.Add("Название", 150);
-        _libraryListView.Columns.Add("Платформа", 90);
-        _libraryListView.Columns.Add("Категорий", 70);
-        _libraryListView.Columns.Add("Дата", 130);
+        _libraryListView.Columns.Add("Название", 140);
+        _libraryListView.Columns.Add("Платформа", 85);
+        _libraryListView.Columns.Add("Категорий", 65);
+        _libraryListView.Columns.Add("Дата", 125);
         _libraryListView.Columns.Add("Описание", 200);
-        _libraryListView.SelectedIndexChanged += LibrarySelectionChanged;
-
-        var rightPanel = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 3, Name = "libRight" };
-        rightPanel.Controls.Add(new Label
+        _libraryListView.SelectedIndexChanged += (_, _) =>
         {
-            Text = "Описание:", Font = new Font("Segoe UI", 9, FontStyle.Bold), AutoSize = true, Name = "lblDesc"
-        }, 0, 0);
-
-        var descBox = new TextBox
-        {
-            Dock = DockStyle.Fill, Multiline = true, ReadOnly = true,
-            BorderStyle = BorderStyle.FixedSingle, Font = new Font("Segoe UI", 9),
-            Name = "libraryDescBox"
+            var box = _libraryTab.Controls.Find("libDesc", true).FirstOrDefault() as TextBox;
+            if (box == null) return;
+            if (_libraryListView.SelectedItems.Count == 0) { box.Text = ""; return; }
+            var entry = _libraryService.GetEntries().FirstOrDefault(x => x.Id == (string?)_libraryListView.SelectedItems[0].Tag);
+            box.Text = entry?.Description ?? "";
         };
 
-        var libActions = new FlowLayoutPanel { Dock = DockStyle.Fill, Height = 36, FlowDirection = FlowDirection.LeftToRight, Name = "libActions" };
-        var loadLibBtn = CreateStyledButton("📥 Загрузить", PrimaryColor, 130);
-        var deleteLibBtn = CreateStyledButton("🗑 Удалить", DangerColor, 110);
-        var exportLibBtn = CreateStyledButton("💾 Экспорт", Color.FromArgb(80, 100, 140), 120);
+        var rightP = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 3, BackColor = Color.White };
+        rightP.Controls.Add(new Label { Text = "Описание:", Font = new Font("Segoe UI", 9, FontStyle.Bold), ForeColor = Color.FromArgb(70, 74, 82), AutoSize = true }, 0, 0);
 
-        loadLibBtn.Click += LoadFromLibrary_Click;
-        deleteLibBtn.Click += DeleteFromLibrary_Click;
-        exportLibBtn.Click += ExportLibraryEntry_Click;
-        saveLibBtn.Click += SaveToLibrary_Click;
+        var descBox = new TextBox { Dock = DockStyle.Fill, Multiline = true, ReadOnly = true, BorderStyle = BorderStyle.FixedSingle, Font = new Font("Segoe UI", 9), BackColor = Color.FromArgb(248, 249, 252), ForeColor = Color.FromArgb(40, 44, 52), Name = "libDesc" };
 
-        libActions.Controls.Add(loadLibBtn);
-        libActions.Controls.Add(deleteLibBtn);
-        libActions.Controls.Add(exportLibBtn);
+        var acts = new FlowLayoutPanel { Dock = DockStyle.Fill, Height = 36, FlowDirection = FlowDirection.LeftToRight, BackColor = Color.White };
+        var loadBtn = CreateBtn("📥 Загрузить", PrimaryColor, 125);
+        var delBtn = CreateBtn("🗑 Удалить", DangerColor, 105);
+        var expBtn = CreateBtn("💾 Экспорт", Color.FromArgb(75, 95, 135), 115, 9f);
 
-        rightPanel.Controls.Add(descBox, 0, 1);
-        rightPanel.Controls.Add(libActions, 0, 2);
-        rightPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 22));
-        rightPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        rightPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 36));
+        loadBtn.Click += LoadFromLib_Click;
+        delBtn.Click += DeleteFromLib_Click;
+        expBtn.Click += ExportLibEntry_Click;
 
-        layout.Controls.Add(headerFlow, 0, 0);
+        acts.Controls.Add(loadBtn);
+        acts.Controls.Add(delBtn);
+        acts.Controls.Add(expBtn);
+
+        rightP.Controls.Add(descBox, 0, 1);
+        rightP.Controls.Add(acts, 0, 2);
+        rightP.RowStyles.Add(new RowStyle(SizeType.Absolute, 22));
+        rightP.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        rightP.RowStyles.Add(new RowStyle(SizeType.Absolute, 36));
+
+        layout.Controls.Add(headerF, 0, 0);
         layout.Controls.Add(new Panel(), 1, 0);
         layout.Controls.Add(_libraryListView, 0, 1);
-        layout.Controls.Add(rightPanel, 1, 1);
+        layout.Controls.Add(rightP, 1, 1);
         layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 60));
         layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 40));
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));
@@ -393,9 +465,8 @@ public partial class Form1 : Form
     private void ToggleTheme(object? sender, EventArgs e)
     {
         _darkMode = !_darkMode;
-        if (sender is Button btn) btn.Text = _darkMode ? "☀️" : "🌙";
+        if (sender is Button b) b.Text = _darkMode ? "☀️" : "🌙";
         ApplyTheme();
-        Refresh();
     }
 
     private void ApplyTheme()
@@ -403,145 +474,80 @@ public partial class Form1 : Form
         if (_darkMode)
         {
             BackColor = DarkBg; ForeColor = DarkText;
-            ApplyThemeToControl(this, true);
+            ApplyPalette(this, true);
+            _logTextBox.BackColor = Color.FromArgb(20, 20, 24);
+            _logTextBox.ForeColor = Color.FromArgb(0, 200, 100);
+            _jsonPreviewTextBox.BackColor = DarkPanel;
+            _jsonPreviewTextBox.ForeColor = Color.FromArgb(170, 200, 230);
+            if (_adminBanner.Visible)
+            {
+                _adminBanner.BackColor = Color.FromArgb(50, 40, 20);
+                foreach (Control c in _adminBanner.Controls)
+                {
+                    if (c is Label l && l.Text.StartsWith("⚠")) l.ForeColor = Color.FromArgb(220, 170, 50);
+                    if (c is Label l2 && l2.Text.Contains("без прав")) l2.ForeColor = Color.FromArgb(200, 180, 120);
+                }
+            }
         }
         else
         {
             BackColor = Color.FromArgb(245, 247, 250); ForeColor = Color.Black;
-            ApplyThemeToControl(this, false);
+            ApplyPalette(this, false);
+            _logTextBox.BackColor = Color.FromArgb(28, 28, 34);
+            _logTextBox.ForeColor = Color.FromArgb(0, 218, 118);
+            _jsonPreviewTextBox.BackColor = Color.FromArgb(38, 38, 44);
+            _jsonPreviewTextBox.ForeColor = Color.FromArgb(195, 215, 240);
+            if (_adminBanner.Visible)
+            {
+                _adminBanner.BackColor = Color.FromArgb(255, 245, 225);
+                foreach (Control c in _adminBanner.Controls)
+                {
+                    if (c is Label l && l.Text.StartsWith("⚠")) l.ForeColor = Color.FromArgb(180, 100, 0);
+                    if (c is Label l2 && l2.Text.Contains("без прав")) l2.ForeColor = Color.FromArgb(120, 70, 0);
+                }
+            }
         }
     }
 
-    private void ApplyThemeToControl(Control parent, bool dark)
+    private void ApplyPalette(Control parent, bool dark)
     {
         foreach (Control c in parent.Controls)
         {
-            if (c is TabControl tc)
-            {
-                tc.BackColor = dark ? DarkPanel : Color.FromArgb(245, 247, 250);
-                tc.ForeColor = dark ? DarkText : Color.Black;
-                foreach (TabPage tp in tc.TabPages)
-                    ApplyThemeToControl(tp, dark);
-                continue;
-            }
-
-            if (c is TabPage tp2)
-            {
-                tp2.BackColor = dark ? DarkSurface : Color.White;
-                tp2.ForeColor = dark ? DarkText : Color.Black;
-                ApplyThemeToControl(tp2, dark);
-                continue;
-            }
-
-            if (c is SplitContainer sc)
-            {
-                sc.BackColor = dark ? DarkBorder : Color.FromArgb(220, 224, 230);
-                sc.Panel1.BackColor = dark ? DarkSurface : Color.White;
-                sc.Panel2.BackColor = dark ? DarkSurface : Color.White;
-                ApplyThemeToControl(sc.Panel1, dark);
-                ApplyThemeToControl(sc.Panel2, dark);
-                continue;
-            }
-
-            if (c is TreeView tv)
-            {
-                tv.BackColor = dark ? DarkPanel : Color.FromArgb(250, 251, 253);
-                tv.ForeColor = dark ? DarkText : Color.Black;
-                continue;
-            }
-
-            if (c is ListView lv)
-            {
-                lv.BackColor = dark ? DarkPanel : Color.FromArgb(250, 251, 253);
-                lv.ForeColor = dark ? DarkText : Color.Black;
-                continue;
-            }
-
-            if (c is TextBox tb)
-            {
-                tb.BackColor = dark ? DarkPanel : Color.White;
-                tb.ForeColor = dark ? DarkText : Color.Black;
-                if (tb.Name == "_logTextBox" || tb.Name == "jsonPreview")
-                {
-                    tb.BackColor = dark ? Color.FromArgb(20, 20, 24) : Color.FromArgb(30, 30, 36);
-                    tb.ForeColor = dark ? Color.FromArgb(0, 200, 100) : Color.FromArgb(0, 220, 120);
-                }
-                continue;
-            }
-
-            if (c is ComboBox cb)
-            {
-                cb.BackColor = dark ? DarkPanel : Color.White;
-                cb.ForeColor = dark ? DarkText : Color.Black;
-                continue;
-            }
-
-            if (c is Label lbl && (lbl.Name == "lblTitle" || lbl.Name == "lblSubtitle"))
-            {
-                lbl.ForeColor = dark ? Color.White : Color.Black;
-                if (lbl.Name == "lblSubtitle") lbl.ForeColor = dark ? Color.FromArgb(160, 170, 190) : Color.FromArgb(100, 100, 100);
-                continue;
-            }
-
+            if (c is TabPage tp) { tp.BackColor = dark ? DarkSurface : Color.White; ApplyPalette(tp, dark); continue; }
+            if (c is SplitContainer sc) { sc.BackColor = dark ? DarkBorder : Color.FromArgb(220, 224, 230); sc.Panel1.BackColor = dark ? DarkSurface : Color.White; sc.Panel2.BackColor = dark ? DarkSurface : Color.White; ApplyPalette(sc.Panel1, dark); ApplyPalette(sc.Panel2, dark); continue; }
+            if (c is TreeView tv) { tv.BackColor = dark ? DarkPanel : Color.FromArgb(250, 251, 253); tv.ForeColor = dark ? DarkText : Color.Black; continue; }
+            if (c is ListView lv) { lv.BackColor = dark ? DarkPanel : Color.FromArgb(250, 251, 253); lv.ForeColor = dark ? DarkText : Color.Black; continue; }
+            if (c is TextBox tb && tb.ReadOnly && tb.Multiline && tb.Name != "libDesc") continue;
+            if (c is TextBox tb2) { tb2.BackColor = dark ? DarkPanel : Color.White; tb2.ForeColor = dark ? DarkText : Color.Black; continue; }
+            if (c is ComboBox cb) { cb.BackColor = dark ? DarkPanel : Color.White; cb.ForeColor = dark ? DarkText : Color.Black; continue; }
             if (c is Panel p)
             {
-                if (p.Parent is SplitContainer) continue;
-                bool isHeader = p.Dock == DockStyle.Top && p.Height <= 60;
-                if (isHeader)
-                {
-                    p.BackColor = dark ? Color.FromArgb(22, 24, 30) : Color.FromArgb(32, 36, 48);
-                    foreach (Control pc in p.Controls)
-                        if (pc is Label l) l.ForeColor = dark ? Color.FromArgb(180, 190, 210) : Color.FromArgb(200, 200, 220);
-                    continue;
-                }
-                if (dark)
-                {
-                    p.BackColor = DarkSurface;
-                    ApplyThemeToControl(p, dark);
-                    continue;
-                }
-            }
-
-            if (c is FlowLayoutPanel || c is TableLayoutPanel)
-            {
-                if (dark) c.BackColor = DarkSurface;
-                ApplyThemeToControl(c, dark);
+                if (p.Dock == DockStyle.Top && p.Height <= 56) { p.BackColor = dark ? Color.FromArgb(22, 24, 30) : Color.FromArgb(32, 36, 46); continue; }
+                if (dark) { p.BackColor = DarkSurface; if (p.Name == "layout_Win10" || p.Name == "layout_Win11" || p.Name == "importLayout" || p.Name == "libLayout") p.BackColor = DarkSurface; }
+                ApplyPalette(p, dark);
                 continue;
             }
-
-            if (c is Button b && b.FlatStyle == FlatStyle.Flat)
+            if (c is FlowLayoutPanel || c is TableLayoutPanel) { if (dark) c.BackColor = DarkSurface; ApplyPalette(c, dark); continue; }
+            if (c is Button btn && btn.FlatStyle == FlatStyle.Flat && btn.BackColor != PrimaryColor && btn.BackColor != SuccessColor && btn.BackColor != WarningColor && btn.BackColor != DangerColor) { if (dark) { btn.BackColor = DarkSurface; btn.ForeColor = DarkText; } continue; }
+            if (c is Label l)
             {
-                if (b.BackColor == PrimaryColor || b.BackColor == SuccessColor ||
-                    b.BackColor == WarningColor || b.BackColor == DangerColor)
-                    continue;
-                if (dark)
-                {
-                    b.BackColor = DarkSurface; b.ForeColor = DarkText;
-                    b.FlatAppearance.MouseOverBackColor = DarkBorder;
-                }
+                if (dark) { if (l.Parent is Panel hp && hp.Dock == DockStyle.Top && hp.Height <= 26) { l.ForeColor = DarkText; } else if (l.Parent is TableLayoutPanel || l.Parent is FlowLayoutPanel) l.ForeColor = DarkText; }
                 continue;
             }
-
-            if (dark && c is Label && c.Parent is Panel hp && hp.Dock == DockStyle.Top && hp.Height <= 30)
-                c.ForeColor = DarkText;
-
-            if (c.HasChildren)
-                ApplyThemeToControl(c, dark);
+            if (c.HasChildren) ApplyPalette(c, dark);
         }
     }
 
-    // ─── Shared ───────────────────────────────────────────────────
+    // ─── Shared helpers ───────────────────────────────────────────
 
-    private static Button CreateStyledButton(string text, Color bgColor, int width)
+    private static Button CreateBtn(string text, Color bgColor, int width, float fontSize = 9.5f)
     {
         return new Button
         {
-            Text = text, Width = width, Height = 30,
-            FlatStyle = FlatStyle.Flat,
-            FlatAppearance = { BorderSize = 0, MouseOverBackColor = ControlPaint.Light(bgColor) },
-            BackColor = bgColor, ForeColor = Color.White,
-            Font = new Font("Segoe UI", 9.5f), Cursor = Cursors.Hand,
-            TextAlign = ContentAlignment.MiddleCenter, UseVisualStyleBackColor = false
+            Text = text, Width = width, Height = 28,
+            FlatStyle = FlatStyle.Flat, FlatAppearance = { BorderSize = 0, MouseOverBackColor = ControlPaint.Light(bgColor) },
+            BackColor = bgColor, ForeColor = Color.White, Font = new Font("Segoe UI", fontSize),
+            Cursor = Cursors.Hand, TextAlign = ContentAlignment.MiddleCenter, UseVisualStyleBackColor = false
         };
     }
 
@@ -558,12 +564,12 @@ public partial class Form1 : Form
         tree.ExpandAll();
     }
 
-    private void SetAllChecked(TreeNodeCollection nodes, bool state)
+    private static void SetAllChecked(TreeNodeCollection nodes, bool state)
     {
         foreach (TreeNode n in nodes) { n.Checked = state; if (n.Nodes.Count > 0) SetAllChecked(n.Nodes, state); }
     }
 
-    private async void ExportWin_Click(string platform, TreeView tree, TextBox pathBox)
+    private async void ExportWin(string platform, TreeView tree, TextBox pathBox)
     {
         var cats = platform == "Win11" ? _win11Categories : _win10Categories;
         foreach (TreeNode n in tree.Nodes)
@@ -574,7 +580,6 @@ public partial class Form1 : Form
         var path = pathBox.Text;
         if (string.IsNullOrWhiteSpace(path)) { MessageBox.Show("Укажите путь.", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
 
-        SetControlsEnabled(false);
         _progressBar.Visible = true; _progressBar.Value = 0;
         var progress = new Progress<int>(v => _progressBar.Value = Math.Min(v, 100));
 
@@ -584,23 +589,17 @@ public partial class Form1 : Form
                 await _exporter.ExportToRegAsync(path, cats, progress);
             else
                 await _exporter.ExportAsync(path, cats, progress);
-            Log($"Экспорт {platform} завершен: {path}");
+            Log($"Экспорт {platform} завершён: {path}");
             _progressBar.Value = 100;
             MessageBox.Show($"Настройки {platform} экспортированы.", "Готово", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
         catch (Exception ex) { Log($"Ошибка: {ex.Message}"); MessageBox.Show($"Ошибка:\n{ex.Message}", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error); }
-        finally { SetControlsEnabled(true); _progressBar.Visible = false; }
-    }
-
-    private void ImportBrowse_Click(object? sender, EventArgs e)
-    {
-        var dlg = new OpenFileDialog { Filter = "JSON (*.json)|*.json|REG (*.reg)|*.reg" };
-        if (dlg.ShowDialog() == DialogResult.OK) { _importPathTextBox.Text = dlg.FileName; LoadImportFile(dlg.FileName); }
+        finally { _progressBar.Visible = false; }
     }
 
     private async void LoadImportFile(string path)
     {
-        SetControlsEnabled(false); _progressBar.Visible = true;
+        _progressBar.Visible = true;
         try
         {
             if (path.EndsWith(".reg", StringComparison.OrdinalIgnoreCase))
@@ -618,28 +617,22 @@ public partial class Form1 : Form
                 foreach (var sub in cat.SubCategories)
                 {
                     var sn = new TreeNode($"{sub.Name}  [{sub.Values.Count} параметров]") { Tag = sub, Checked = true };
-                    int shown = 0;
-                    foreach (var kv in sub.Values) { if (shown++ >= 5) break; sn.Nodes.Add(new TreeNode($"{kv.Key} = {Truncate(kv.Value.Data)}")); }
+                    int shown = 0; foreach (var kv in sub.Values) { if (shown++ >= 5) break; sn.Nodes.Add(new TreeNode($"{kv.Key} = {Trunc(kv.Value.Data)}")); }
                     if (sub.Values.Count > 5) sn.Nodes.Add(new TreeNode($"... ещё {sub.Values.Count - 5}"));
                     cn.Nodes.Add(sn);
                 }
                 _importTreeView.Nodes.Add(cn);
             }
             _importTreeView.ExpandAll();
-            ShowJsonPreview(path);
+            try { var j = File.ReadAllText(path); _jsonPreviewTextBox.Text = JsonSerializer.Serialize(JsonSerializer.Deserialize<object>(j), new JsonSerializerOptions { WriteIndented = true }); }
+            catch { _jsonPreviewTextBox.Text = File.ReadAllText(path); }
             Log($"Загружен: {path}");
         }
         catch (Exception ex) { Log($"Ошибка: {ex.Message}"); MessageBox.Show($"Ошибка:\n{ex.Message}", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error); }
-        finally { SetControlsEnabled(true); _progressBar.Visible = false; }
+        finally { _progressBar.Visible = false; }
     }
 
-    private void ShowJsonPreview(string path)
-    {
-        try { var json = File.ReadAllText(path); _jsonPreviewTextBox.Text = JsonSerializer.Serialize(JsonSerializer.Deserialize<object>(json), new JsonSerializerOptions { WriteIndented = true }); }
-        catch { _jsonPreviewTextBox.Text = File.ReadAllText(path); }
-    }
-
-    private static string Truncate(string? s, int max = 60) => string.IsNullOrEmpty(s) ? "(пусто)" : s.Length > max ? s[..max] + "..." : s;
+    private static string Trunc(string? s, int max = 60) => string.IsNullOrEmpty(s) ? "(пусто)" : s.Length > max ? s[..max] + "..." : s;
 
     // ─── Library ──────────────────────────────────────────────────
 
@@ -655,66 +648,45 @@ public partial class Form1 : Form
             it.SubItems.Add(e.Platform == "Win11" ? "Windows 11" : "Windows 10");
             it.SubItems.Add(e.CategoryCount.ToString());
             it.SubItems.Add(e.Created.ToString("dd.MM.yyyy HH:mm"));
-            it.SubItems.Add(e.Description.Length > 60 ? e.Description[..60] + "..." : e.Description);
+            it.SubItems.Add(e.Description.Length > 55 ? e.Description[..55] + "..." : e.Description);
             _libraryListView.Items.Add(it);
         }
     }
 
-    private void LibrarySelectionChanged(object? sender, EventArgs e)
-    {
-        var box = _libraryTab.Controls.Find("libraryDescBox", true).FirstOrDefault() as TextBox;
-        if (box == null) return;
-        if (_libraryListView.SelectedItems.Count == 0) { box.Text = ""; return; }
-        var id = _libraryListView.SelectedItems[0].Tag as string;
-        var entry = _libraryService.GetEntries().FirstOrDefault(x => x.Id == id);
-        box.Text = entry?.Description ?? "";
-    }
-
-    private void SaveToLibrary_Click(object? sender, EventArgs e)
+    private void SaveToLib_Click(object? sender, EventArgs e)
     {
         var nameBox = new TextBox();
-        var descBox = new TextBox { Multiline = true, Height = 70, ScrollBars = ScrollBars.Vertical };
-        var platformCombo = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 200 };
-        platformCombo.Items.AddRange(["Windows 10", "Windows 11"]);
-        platformCombo.SelectedIndex = 0;
+        var descBox = new TextBox { Multiline = true, Height = 65, ScrollBars = ScrollBars.Vertical };
+        var platBox = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 200 };
+        platBox.Items.AddRange(["Windows 10", "Windows 11"]); platBox.SelectedIndex = 0;
 
-        var form = new Form { Text = "Сохранить в библиотеку", Size = new Size(420, 300), StartPosition = FormStartPosition.CenterParent, FormBorderStyle = FormBorderStyle.FixedDialog, MaximizeBox = false, MinimizeBox = false };
-        var layout = new TableLayoutPanel { Dock = DockStyle.Fill, Padding = new Padding(12), ColumnCount = 1, RowCount = 6 };
-        layout.Controls.Add(new Label { Text = "Название:", AutoSize = true });
-        layout.Controls.Add(nameBox);
-        layout.Controls.Add(new Label { Text = "Описание:", AutoSize = true });
-        layout.Controls.Add(descBox);
-        layout.Controls.Add(new Label { Text = "Платформа:", AutoSize = true });
-        layout.Controls.Add(platformCombo);
-
-        var ok = new Button { Text = "Сохранить", DialogResult = DialogResult.OK, Width = 100, Height = 30 };
-        var cancel = new Button { Text = "Отмена", DialogResult = DialogResult.Cancel, Width = 100, Height = 30 };
+        var f = new Form { Text = "Сохранить в библиотеку", Size = new Size(400, 280), StartPosition = FormStartPosition.CenterParent, FormBorderStyle = FormBorderStyle.FixedDialog, MaximizeBox = false, MinimizeBox = false, BackColor = Color.White };
+        var lay = new TableLayoutPanel { Dock = DockStyle.Fill, Padding = new Padding(12), ColumnCount = 1, RowCount = 6 };
+        lay.Controls.Add(new Label { Text = "Название:", AutoSize = true }); lay.Controls.Add(nameBox);
+        lay.Controls.Add(new Label { Text = "Описание:", AutoSize = true }); lay.Controls.Add(descBox);
+        lay.Controls.Add(new Label { Text = "Платформа:", AutoSize = true }); lay.Controls.Add(platBox);
+        var ok = new Button { Text = "Сохранить", DialogResult = DialogResult.OK, Width = 100, Height = 28, BackColor = PrimaryColor, ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
+        var cancel = new Button { Text = "Отмена", DialogResult = DialogResult.Cancel, Width = 100, Height = 28 };
         var bp = new FlowLayoutPanel { FlowDirection = FlowDirection.RightToLeft };
-        bp.Controls.Add(ok); bp.Controls.Add(cancel);
-        layout.Controls.Add(bp);
+        bp.Controls.Add(ok); bp.Controls.Add(cancel); lay.Controls.Add(bp);
+        f.Controls.Add(lay); f.AcceptButton = ok; f.CancelButton = cancel;
 
-        form.Controls.Add(layout); form.AcceptButton = ok; form.CancelButton = cancel;
-        if (form.ShowDialog(this) != DialogResult.OK) return;
+        if (f.ShowDialog(this) != DialogResult.OK) return;
         if (string.IsNullOrWhiteSpace(nameBox.Text)) { MessageBox.Show("Введите название.", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
 
-        var platform = platformCombo.SelectedIndex == 1 ? "Win11" : "Win10";
+        var platform = platBox.SelectedIndex == 1 ? "Win11" : "Win10";
         var cats = platform == "Win11" ? _win11Categories : _win10Categories;
-
         var data = new SettingsExportData
         {
             ExportDate = DateTime.Now, WindowsVersion = _repository.GetWindowsVersion(),
-            Categories = cats.Where(c => c.IsSelected).Select(c => new SettingsCategory
-            {
-                Name = c.Name, IsSelected = true,
-                SubCategories = c.SubCategories.Where(s => s.IsSelected).Select(s => new SettingsCategory { Name = s.Name, IsSelected = true, RegistryPaths = s.RegistryPaths, Values = s.Values }).ToList()
-            }).ToList()
+            Categories = cats.Where(c => c.IsSelected).Select(c => new SettingsCategory { Name = c.Name, IsSelected = true, SubCategories = c.SubCategories.Where(s => s.IsSelected).Select(s => new SettingsCategory { Name = s.Name, IsSelected = true, RegistryPaths = s.RegistryPaths, Values = s.Values }).ToList() }).ToList()
         };
 
-        try { _libraryService.Save(nameBox.Text.Trim(), descBox.Text.Trim(), platform, data); RefreshLibraryList(); Log($"Конфиг \"{nameBox.Text.Trim()}\" ({platform}) сохранён."); }
+        try { _libraryService.Save(nameBox.Text.Trim(), descBox.Text.Trim(), platform, data); RefreshLibraryList(); Log($"Сохранено: \"{nameBox.Text.Trim()}\" ({platform})"); }
         catch (Exception ex) { Log($"Ошибка: {ex.Message}"); MessageBox.Show($"Ошибка: {ex.Message}", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error); }
     }
 
-    private void LoadFromLibrary_Click(object? sender, EventArgs e)
+    private void LoadFromLib_Click(object? sender, EventArgs e)
     {
         if (_libraryListView.SelectedItems.Count == 0) { MessageBox.Show("Выберите конфиг.", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
         var id = _libraryListView.SelectedItems[0].Tag as string;
@@ -728,7 +700,7 @@ public partial class Form1 : Form
             foreach (var sub in cat.SubCategories)
             {
                 var sn = new TreeNode($"{sub.Name}  [{sub.Values.Count} параметров]") { Tag = sub, Checked = true };
-                int sh = 0; foreach (var kv in sub.Values) { if (sh++ >= 5) break; sn.Nodes.Add(new TreeNode($"{kv.Key} = {Truncate(kv.Value.Data)}")); }
+                int sh = 0; foreach (var kv in sub.Values) { if (sh++ >= 5) break; sn.Nodes.Add(new TreeNode($"{kv.Key} = {Trunc(kv.Value.Data)}")); }
                 if (sub.Values.Count > 5) sn.Nodes.Add(new TreeNode($"... ещё {sub.Values.Count - 5}"));
                 cn.Nodes.Add(sn);
             }
@@ -739,7 +711,7 @@ public partial class Form1 : Form
         Log($"Загружен из библиотеки: {_libraryListView.SelectedItems[0].Text}");
     }
 
-    private void DeleteFromLibrary_Click(object? sender, EventArgs e)
+    private void DeleteFromLib_Click(object? sender, EventArgs e)
     {
         if (_libraryListView.SelectedItems.Count == 0) return;
         var id = _libraryListView.SelectedItems[0].Tag as string;
@@ -747,21 +719,21 @@ public partial class Form1 : Form
         _libraryService.Delete(id!); RefreshLibraryList();
     }
 
-    private void ExportLibraryEntry_Click(object? sender, EventArgs e)
+    private void ExportLibEntry_Click(object? sender, EventArgs e)
     {
         if (_libraryListView.SelectedItems.Count == 0) return;
         var id = _libraryListView.SelectedItems[0].Tag as string;
-        var dlg = new SaveFileDialog { Filter = "JSON (*.json)|*.json", FileName = $"{_libraryListView.SelectedItems[0].Text}.json" };
-        if (dlg.ShowDialog() != DialogResult.OK) return;
-        try { _libraryService.ExportToFile(id!, dlg.FileName); Log($"Экспортирован: {dlg.FileName}"); MessageBox.Show("Готово.", "Готово", MessageBoxButtons.OK, MessageBoxIcon.Information); }
+        var d = new SaveFileDialog { Filter = "JSON (*.json)|*.json", FileName = $"{_libraryListView.SelectedItems[0].Text}.json" };
+        if (d.ShowDialog() != DialogResult.OK) return;
+        try { _libraryService.ExportToFile(id!, d.FileName); Log($"Экспортирован: {d.FileName}"); MessageBox.Show("Готово.", "Готово", MessageBoxButtons.OK, MessageBoxIcon.Information); }
         catch (Exception ex) { Log($"Ошибка: {ex.Message}"); MessageBox.Show($"Ошибка: {ex.Message}", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error); }
     }
 
-    // ─── Backup / Import actions ──────────────────────────────────
+    // ─── Backup / Import ──────────────────────────────────────────
 
-    private async void BackupButton_Click(object? sender, EventArgs e)
+    private async void Backup_Click(object? sender, EventArgs e)
     {
-        SetControlsEnabled(false); _progressBar.Visible = true; _progressBar.Value = 0;
+        _progressBar.Visible = true; _progressBar.Value = 0;
         var progress = new Progress<int>(v => _progressBar.Value = Math.Min(v, 100));
         try
         {
@@ -771,25 +743,25 @@ public partial class Form1 : Form
             MessageBox.Show($"Сохранено:\n{path}", "Готово", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
         catch (Exception ex) { Log($"Ошибка: {ex.Message}"); MessageBox.Show($"Ошибка:\n{ex.Message}", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error); }
-        finally { SetControlsEnabled(true); _progressBar.Visible = false; }
+        finally { _progressBar.Visible = false; }
     }
 
-    private async void RestoreButton_Click(object? sender, EventArgs e)
+    private async void Restore_Click(object? sender, EventArgs e)
     {
-        var dlg = new OpenFileDialog { Filter = "REG (*.reg)|*.reg" };
-        if (dlg.ShowDialog() != DialogResult.OK) return;
+        var d = new OpenFileDialog { Filter = "REG (*.reg)|*.reg" };
+        if (d.ShowDialog() != DialogResult.OK) return;
         if (MessageBox.Show("Восстановить реестр из копии?", "Подтверждение", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes) return;
-        SetControlsEnabled(false); _progressBar.Visible = true;
-        try { await _backupService.RestoreRegistryAsync(dlg.FileName); Log($"Восстановлено: {dlg.FileName}"); MessageBox.Show("Реестр восстановлен.", "Готово", MessageBoxButtons.OK, MessageBoxIcon.Information); }
+        _progressBar.Visible = true;
+        try { await _backupService.RestoreRegistryAsync(d.FileName); Log($"Восстановлено: {d.FileName}"); MessageBox.Show("Реестр восстановлен.", "Готово", MessageBoxButtons.OK, MessageBoxIcon.Information); }
         catch (Exception ex) { Log($"Ошибка: {ex.Message}"); MessageBox.Show($"Ошибка:\n{ex.Message}", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error); }
-        finally { SetControlsEnabled(true); _progressBar.Visible = false; }
+        finally { _progressBar.Visible = false; }
     }
 
-    private async void ImportButton_Click(object? sender, EventArgs e)
+    private async void Import_Click(object? sender, EventArgs e)
     {
         var path = _importPathTextBox.Text;
         if (string.IsNullOrWhiteSpace(path)) { MessageBox.Show("Выберите файл.", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
-        if (path.EndsWith(".reg", StringComparison.OrdinalIgnoreCase)) { ImportRegDirect(path); return; }
+        if (path.EndsWith(".reg", StringComparison.OrdinalIgnoreCase)) { ImportReg(path); return; }
         if (_loadedExportData == null) { MessageBox.Show("Не удалось загрузить данные.", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error); return; }
 
         var selected = new List<SettingsCategory>();
@@ -805,14 +777,14 @@ public partial class Form1 : Form
         if (selected.Count == 0) { MessageBox.Show("Выберите категории.", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
         if (MessageBox.Show("Импорт изменит реестр. Продолжить?", "Подтверждение", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes) return;
 
-        SetControlsEnabled(false); _progressBar.Visible = true; _progressBar.Value = 0;
+        _progressBar.Visible = true; _progressBar.Value = 0;
         var progress = new Progress<int>(v => _progressBar.Value = Math.Min(v, 100));
         try { await _importer.ImportAsync(_loadedExportData, selected, progress); Log("Импорт завершён."); _progressBar.Value = 100; MessageBox.Show("Настройки импортированы.", "Готово", MessageBoxButtons.OK, MessageBoxIcon.Information); }
         catch (Exception ex) { Log($"Ошибка: {ex.Message}"); MessageBox.Show($"Ошибка:\n{ex.Message}", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error); }
-        finally { SetControlsEnabled(true); _progressBar.Visible = false; }
+        finally { _progressBar.Visible = false; }
     }
 
-    private void ImportRegDirect(string path)
+    private void ImportReg(string path)
     {
         if (MessageBox.Show($"Импортировать REG?\n{path}", "Подтверждение", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes) return;
         try
@@ -831,21 +803,5 @@ public partial class Form1 : Form
     {
         if (_logTextBox.InvokeRequired) { _logTextBox.Invoke(() => Log(msg)); return; }
         _logTextBox.AppendText($"[{DateTime.Now:HH:mm:ss}] {msg}{Environment.NewLine}"); _logTextBox.ScrollToCaret();
-    }
-
-    private void SetControlsEnabled(bool enabled)
-    {
-        if (InvokeRequired) { Invoke(() => SetControlsEnabled(enabled)); return; }
-    }
-
-    private void CheckAdminRights()
-    {
-        try
-        {
-            var id = System.Security.Principal.WindowsIdentity.GetCurrent();
-            var p = new System.Security.Principal.WindowsPrincipal(id);
-            Log(p.IsInRole(System.Security.Principal.WindowsBuiltInRole.Administrator) ? "Права администратора." : "ВНИМАНИЕ: без прав администратора.");
-        }
-        catch { }
     }
 }
