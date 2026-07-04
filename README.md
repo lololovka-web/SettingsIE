@@ -1,5 +1,7 @@
 P.S. aslo you can check my project in https://settingsie.netlify.app/
 
+P.S.S. To donwload the program, donwload the source code and enter it into terminal: C:\Users\Пользователь\Desktop\csprowects\SettingsIE> publish\SettingsIE_setup.exe (it my example) 
+
 SettingsIE
 A Windows utility for exporting and importing Windows 10/11 system settings through the Registry. Provides a straightforward graphical interface to back up, transfer, or restore configuration profiles across machines or after reinstallation.
 
