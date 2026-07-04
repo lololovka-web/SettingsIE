@@ -204,6 +204,132 @@ public class WindowsSettingsRepository : IWindowsSettingsRepository
         };
     }
 
+    public List<SettingsCategory> GetWindows11Categories()
+    {
+        return new List<SettingsCategory>
+        {
+            new()
+            {
+                Name = "Система",
+                SubCategories = new List<SettingsCategory>
+                {
+                    new() { Name = "Дисплей", RegistryPaths = new() { @"HKEY_CURRENT_USER\Control Panel\Desktop" } },
+                    new() { Name = "Уведомления", RegistryPaths = new() { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Notifications" } },
+                    new() { Name = "Фокус внимания", RegistryPaths = new() { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\CloudStore\Store\Cache\CurrentAccount" } },
+                    new() { Name = "Электропитание", RegistryPaths = new() { @"HKEY_CURRENT_USER\Control Panel\PowerCfg" } },
+                    new() { Name = "Хранилище", RegistryPaths = new() { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\StorageSense" } },
+                    new() { Name = "Многозадачность", RegistryPaths = new() { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" } }
+                }
+            },
+            new()
+            {
+                Name = "Устройства",
+                SubCategories = new List<SettingsCategory>
+                {
+                    new() { Name = "Мышь", RegistryPaths = new() { @"HKEY_CURRENT_USER\Control Panel\Mouse" } },
+                    new() { Name = "Клавиатура", RegistryPaths = new() { @"HKEY_CURRENT_USER\Control Panel\Keyboard" } },
+                    new() { Name = "Bluetooth", RegistryPaths = new() { @"HKEY_CURRENT_USER\Software\Microsoft\Bluetooth\Device" } },
+                    new() { Name = "Сенсорная панель", RegistryPaths = new() { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\PrecisionTouchPad" } },
+                    new() { Name = "Автозапуск", RegistryPaths = new() { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers" } }
+                }
+            },
+            new()
+            {
+                Name = "Сеть и Интернет",
+                SubCategories = new List<SettingsCategory>
+                {
+                    new() { Name = "Прокси-сервер", RegistryPaths = new() { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Internet Settings" } },
+                    new() { Name = "DNS", RegistryPaths = new() { @"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters" } },
+                    new() { Name = "VPN", RegistryPaths = new() { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\VPN" } }
+                }
+            },
+            new()
+            {
+                Name = "Персонализация",
+                SubCategories = new List<SettingsCategory>
+                {
+                    new() { Name = "Темы оформления", RegistryPaths = new() { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes" } },
+                    new() { Name = "Панель задач", RegistryPaths = new() { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" } },
+                    new() { Name = "Фон рабочего стола", RegistryPaths = new() { @"HKEY_CURRENT_USER\Control Panel\Desktop" } },
+                    new() { Name = "Цвета", RegistryPaths = new() { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Accent" } },
+                    new() { Name = "Пуск", RegistryPaths = new() { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Start" } },
+                    new() { Name = "Виджеты", RegistryPaths = new() { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Widgets" } },
+                    new() { Name = "Панель ввода", RegistryPaths = new() { @"HKEY_CURRENT_USER\Software\Microsoft\InputPanel" } }
+                }
+            },
+            new()
+            {
+                Name = "Приложения",
+                SubCategories = new List<SettingsCategory>
+                {
+                    new() { Name = "Приложения по умолчанию", RegistryPaths = new() { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts" } },
+                    new() { Name = "Автозагрузка", RegistryPaths = new() { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run" } },
+                    new() { Name = "Офлайн-карты", RegistryPaths = new() { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Maps" } }
+                }
+            },
+            new()
+            {
+                Name = "Учетные записи",
+                SubCategories = new List<SettingsCategory>
+                {
+                    new() { Name = "Параметры входа", RegistryPaths = new() { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Authentication" } },
+                    new() { Name = "Синхронизация", RegistryPaths = new() { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\SettingSync" } },
+                    new() { Name = "Windows Hello", RegistryPaths = new() { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\WinBio" } }
+                }
+            },
+            new()
+            {
+                Name = "Конфиденциальность",
+                SubCategories = new List<SettingsCategory>
+                {
+                    new() { Name = "Микрофон", RegistryPaths = new() { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\microphone" } },
+                    new() { Name = "Камера", RegistryPaths = new() { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\webcam" } },
+                    new() { Name = "Геолокация", RegistryPaths = new() { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\location" } },
+                    new() { Name = "Диагностика", RegistryPaths = new() { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Diagnostics" } },
+                    new() { Name = "История действий", RegistryPaths = new() { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\ActivityHistory" } }
+                }
+            },
+            new()
+            {
+                Name = "Обновления",
+                SubCategories = new List<SettingsCategory>
+                {
+                    new() { Name = "Активные часы", RegistryPaths = new() { @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings" } },
+                    new() { Name = "Перезагрузка", RegistryPaths = new() { @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate" } },
+                    new() { Name = "Дополнительные обновления", RegistryPaths = new() { @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\OptionalUpdates" } }
+                }
+            },
+            new()
+            {
+                Name = "Язык и регион",
+                SubCategories = new List<SettingsCategory>
+                {
+                    new() { Name = "Языковые настройки", RegistryPaths = new() { @"HKEY_CURRENT_USER\Control Panel\International" } },
+                    new() { Name = "Дата и время", RegistryPaths = new() { @"HKEY_CURRENT_USER\Control Panel\TimeDate" } }
+                }
+            },
+            new()
+            {
+                Name = "Звук",
+                SubCategories = new List<SettingsCategory>
+                {
+                    new() { Name = "Аудио", RegistryPaths = new() { @"HKEY_CURRENT_USER\Software\Microsoft\Multimedia\Audio" } },
+                    new() { Name = "Пространственный звук", RegistryPaths = new() { @"HKEY_CURRENT_USER\Software\Microsoft\Audio\SpatialSound" } }
+                }
+            },
+            new()
+            {
+                Name = "Специальные возможности",
+                SubCategories = new List<SettingsCategory>
+                {
+                    new() { Name = "Экранная лупа", RegistryPaths = new() { @"HKEY_CURRENT_USER\Software\Microsoft\Magnify" } },
+                    new() { Name = "Экранный диктор", RegistryPaths = new() { @"HKEY_CURRENT_USER\Software\Microsoft\Narrator" } },
+                    new() { Name = "Субтитры", RegistryPaths = new() { @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Accessibility\Subtitles" } }
+                }
+            }
+        };
+    }
+
     public string GetWindowsVersion()
     {
         try

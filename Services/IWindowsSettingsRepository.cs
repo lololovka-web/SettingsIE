@@ -9,5 +9,6 @@ public interface IWindowsSettingsRepository
     bool KeyExists(string registryPath);
     void CreateKey(string registryPath);
     List<SettingsCategory> GetDefaultCategories();
+    List<SettingsCategory> GetWindows11Categories();
     string GetWindowsVersion();
 }

@@ -11,6 +11,7 @@ public class ConfigLibraryEntry
     public DateTime Created { get; set; } = DateTime.Now;
     public int CategoryCount { get; set; }
     public string FileName { get; set; } = string.Empty;
+    public string Platform { get; set; } = "Win10";
 }
 
 public class ConfigLibraryService
@@ -43,7 +44,7 @@ public class ConfigLibraryService
         return entries;
     }
 
-    public void Save(string name, string description, SettingsExportData data)
+    public void Save(string name, string description, string platform, SettingsExportData data)
     {
         var entries = GetEntries();
 
@@ -55,6 +56,7 @@ public class ConfigLibraryService
             Id = id,
             Name = name,
             Description = description,
+            Platform = platform,
             Created = DateTime.Now,
             CategoryCount = data.Categories.Count,
             FileName = fileName
