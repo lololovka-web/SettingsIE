@@ -45,3 +45,7 @@ bld/
 *~
 *.log
 logs/
+
+## Published builds
+publish/
+!installer.iss
