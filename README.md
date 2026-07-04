@@ -1,3 +1,5 @@
+P.S. aslo you can check my project in https://settingsie.netlify.app/
+
 SettingsIE
 A Windows utility for exporting and importing Windows 10/11 system settings through the Registry. Provides a straightforward graphical interface to back up, transfer, or restore configuration profiles across machines or after reinstallation.
 
